@@ -78,10 +78,11 @@ def main():
     os.chdir("llvm-project-llvmorg-" + target_branch)
     # Note that the compilers to build llvm can be specified by extra cmake options:
     # e.g., -DCMAKE_C_COMPILER="clang" -DCMAKE_CXX_COMPILER="clang++"
-    os.system("cmake -S llvm -B build -G \"Unix Makefiles\" -DLLVM_ENABLE_PROJECTS=\"clang\" -DLLVM_ENABLE_RUNTIMES=\"libcxx;libcxxabi;compiler-rt;openmp\" -DCMAKE_BUILD_TYPE=\"RelWithDebInfo\" -DCMAKE_C_COMPILER=\"clang\" -DCMAKE_CXX_COMPILER=\"clang++\"")
+    os.system("cmake -S llvm -B build -G \"Unix Makefiles\" -DLLVM_ENABLE_PROJECTS=\"clang\" -DLLVM_ENABLE_RUNTIMES=\"libcxx;libcxxabi;compiler-rt;openmp\" -DCMAKE_BUILD_TYPE=\"RelWithDebInfo\" -DCMAKE_C_COMPILER=\"clang\" -DCMAKE_CXX_COMPILER=\"clang++\" -DDLLVM_TARGETS_TO_BUILD=\"X86;AArch64\"")
     os.chdir("build")
     build_dir = os.getcwd()
-    multi_proc_count = cpu_count()
+    multi_proc_count = 4
+    # multi_proc_count = cpu_count()
     if multi_proc_count > 0:
         log_info("Building in multiprocessing mode on ", multi_proc_count, " cores.")
         os.system('make -j' + str(multi_proc_count))

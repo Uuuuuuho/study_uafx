@@ -1,0 +1,6 @@
+.venv/
+benchmark/
+__pycache__/
+*.pyc
+llvm_analysis/
+linux*/
