@@ -18,8 +18,8 @@ The Docker environment includes all necessary tools:
 cd /uafx
 ```bash
 # Option 1: Download and extract (original method)
-wget https://cdn.kernel.org/pub/linux/kernel/v5.x/linux-5.17.11.tar.xz
-tar -xf linux-5.17.11.tar.xz
+wget https://cdn.kernel.org/pub/linux/kernel/v5.x/linux-5.17.tar.xz
+tar -xf linux-5.17.tar.xz
 
 # Option 2: Clone with shallow history (faster, less disk space)
 git clone --depth 1 --branch v5.17 https://github.com/torvalds/linux.git --single-branch linux-5.17 --tags
@@ -35,35 +35,35 @@ source env.sh
 This will:
 - Configure the kernel with `defconfig`
 - Compile using WLLVM/Clang
-- Extract LLVM bitcode to `linux-5.17.11/vmlinux.bc`
+- Extract LLVM bitcode to `linux-5.17/vmlinux.bc`
 
 **Alternative configurations:**
 ```bash
 # Minimal kernel (faster compilation)
-./compile_kernel.sh linux-5.17.11 tinyconfig
+./compile_kernel.sh linux-5.17 tinyconfig
 
 # Custom config
-./compile_kernel.sh linux-5.17.11 /path/to/custom.config
+./compile_kernel.sh linux-5.17 /path/to/custom.config
 ```
 
 ### 3. Generate Entry Point Configuration
 
 ```bash
 # All x86-64 syscalls
-./gen_kernel_conf.sh linux-5.17.11/vmlinux.bc conf_all_syscalls __x64_sys_
+./gen_kernel_conf.sh linux-5.17/vmlinux.bc conf_all_syscalls __x64_sys_
 
 # File-related syscalls only
-./gen_kernel_conf.sh linux-5.17.11/vmlinux.bc conf_file_syscalls '__x64_sys_(read|write|open|close|ioctl|mmap|munmap)'
+./gen_kernel_conf.sh linux-5.17/vmlinux.bc conf_file_syscalls '__x64_sys_(read|write|open|close|ioctl|mmap|munmap)'
 
 # Network-related syscalls
-./gen_kernel_conf.sh linux-5.17.11/vmlinux.bc conf_net_syscalls '__x64_sys_(socket|bind|connect|accept|send|recv|listen)'
+./gen_kernel_conf.sh linux-5.17/vmlinux.bc conf_net_syscalls '__x64_sys_(socket|bind|connect|accept|send|recv|listen)'
 ```
 
 ### 4. Run UAFX Analysis
 
 ```bash
 # Start analysis (runs in background via nohup)
-./run_nohup.sh linux-5.17.11/vmlinux.bc conf_file_syscalls
+./run_nohup.sh linux-5.17/vmlinux.bc conf_file_syscalls
 
 # Monitor progress
 tail -f conf_file_syscalls.log
@@ -90,7 +90,7 @@ To analyze a specific kernel module or subsystem:
 
 ```bash
 # Example: Analyze a specific driver
-cd linux-5.17.11
+cd linux-5.17
 make drivers/net/ethernet/intel/e1000/e1000.o
 extract-bc drivers/net/ethernet/intel/e1000/e1000.o
 
@@ -99,7 +99,7 @@ extract-bc drivers/net/ethernet/intel/e1000/e1000.o
 
 # Run analysis
 cd ..
-./run_nohup.sh linux-5.17.11/drivers/net/ethernet/intel/e1000/e1000.o.bc conf_e1000
+./run_nohup.sh linux-5.17/drivers/net/ethernet/intel/e1000/e1000.o.bc conf_e1000
 ```
 
 ### Custom Entry Point Lists
@@ -163,7 +163,7 @@ Time varies greatly based on:
 
 ### Compilation Errors
 - Ensure `source env.sh` was run
-- Check kernel version compatibility (tested with 5.17.11)
+- Check kernel version compatibility (tested with 5.17)
 - Verify all dependencies are installed
 
 ### No Bitcode Generated

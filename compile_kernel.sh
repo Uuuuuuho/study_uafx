@@ -30,14 +30,10 @@ fi
 
 # Set up WLLVM environment
 export LLVM_COMPILER=clang
-export CC=wllvm
-export CXX=wllvm++
 export LLVM_COMPILER_PATH=$LLVM_ROOT/bin
 
 echo "[*] WLLVM environment configured:"
 echo "    LLVM_COMPILER=$LLVM_COMPILER"
-echo "    CC=$CC"
-echo "    CXX=$CXX"
 echo "    LLVM_COMPILER_PATH=$LLVM_COMPILER_PATH"
 
 cd "$KERNEL_SRC"
@@ -56,24 +52,69 @@ else
     make defconfig
 fi
 
-# Compile kernel
+# Clean previous build to ensure fresh compilation
+echo "[*] Cleaning previous build..."
+# Use mrproper instead of clean to avoid Documentation/Kbuild issue
+# mrproper removes all generated files including .config, so we save/restore it
+if [ -f ".config" ]; then
+    cp .config .config.backup
+    make mrproper || make clean || echo "[!] Clean failed, continuing anyway..."
+    mv .config.backup .config
+else
+    make mrproper || make clean || echo "[!] Clean failed, continuing anyway..."
+fi
+
+# Compile kernel with WLLVM
+# Important: Pass CC explicitly to make, but use native compilers for host tools
 echo "[*] Compiling kernel (this may take a while)..."
 NUM_CORES=$(nproc)
 echo "[*] Using $NUM_CORES cores"
-make -j"$NUM_CORES"
+
+# Use LLVM=1 to force kernel to use LLVM toolchain
+# Only wrap target CC with wllvm, use native clang/ld for host tools
+# This avoids "unknown linker" errors in host tool compilation
+make LLVM=1 \
+     CC=wllvm \
+     HOSTCC=clang \
+     HOSTLD=ld.lld \
+     HOSTAR=llvm-ar \
+     AR=llvm-ar \
+     NM=llvm-nm \
+     STRIP=llvm-strip \
+     OBJCOPY=llvm-objcopy \
+     OBJDUMP=llvm-objdump \
+     READELF=llvm-readelf \
+     -j"$NUM_CORES"
 
 # Extract bitcode
 echo "[*] Extracting LLVM bitcode from vmlinux..."
 if [ -f "vmlinux" ]; then
+    # Verify that vmlinux has the .llvm_bc section
+    if readelf -S vmlinux | grep -q ".llvm_bc"; then
+        echo "[*] .llvm_bc section found in vmlinux"
+    else
+        echo "[!] WARNING: .llvm_bc section NOT found in vmlinux"
+        echo "[!] This means the kernel was not compiled with WLLVM properly"
+        echo "[!] Trying to extract anyway..."
+    fi
+    
     extract-bc vmlinux
+    
     if [ -f "vmlinux.bc" ]; then
         echo "[+] Success! vmlinux.bc created"
         ls -lh vmlinux.bc
         echo ""
         echo "[*] To analyze with UAFX, create an entry point config file and run:"
         echo "    ./run_nohup.sh $(pwd)/vmlinux.bc /path/to/conf_file"
+        echo ""
+        echo "[*] Or use the helper script to generate entry points:"
+        echo "    ./gen_kernel_conf.sh $(pwd)/vmlinux.bc conf_syscalls __x64_sys_"
     else
         echo "[!] Failed to extract bitcode"
+        echo "[!] Possible causes:"
+        echo "    1. Kernel build system didn't use wllvm (check build logs)"
+        echo "    2. LLVM toolchain version mismatch"
+        echo "    3. Some kernel files compiled without LLVM"
         exit 1
     fi
 else

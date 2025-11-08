@@ -8,6 +8,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     clang lld \
     bc bison flex libelf-dev libssl-dev \
     libncurses-dev kmod cpio \
+    file \
  && rm -rf /var/lib/apt/lists/*
 
 # Install wllvm for whole-program LLVM compilation
