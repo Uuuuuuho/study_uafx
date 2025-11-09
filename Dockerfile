@@ -8,11 +8,20 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     clang lld \
     bc bison flex libelf-dev libssl-dev \
     libncurses-dev kmod cpio \
-    file \
+    file golang-go \
  && rm -rf /var/lib/apt/lists/*
 
-# Install wllvm for whole-program LLVM compilation
-RUN pip3 install --no-cache-dir wllvm
+# Install wllvm (Python) and build gllvm (Go-based) from source
+RUN pip3 install --no-cache-dir wllvm \
+ && mkdir -p /opt/go && export GOPATH=/opt/go && export GOMODCACHE=/opt/go/pkg/mod \
+ && go install github.com/SRI-CSL/gllvm/cmd/...@latest \
+ && ln -s /opt/go/bin/gclang /usr/local/bin/gclang \
+ && ln -s /opt/go/bin/get-bc /usr/local/bin/get-bc \
+ && ln -s /opt/go/bin/llvm-build /usr/local/bin/llvm-build \
+ && ln -s /opt/go/bin/gclang++ /usr/local/bin/gclang++ || true
+
+# Ensure gllvm binaries are on PATH
+ENV PATH="/opt/go/bin:$PATH"
 
 WORKDIR /uafx
 # 캐시 효율을 위해 필요한 파일만 먼저 복사
